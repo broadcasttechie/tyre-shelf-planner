@@ -555,7 +555,7 @@ function svgToPng(svg,pxW){
 
 async function makePdf(){
   const {p,sh,pk,s,totalLen,cars,spare,shortBy,W}=last;
-  const doc=new window.jspdf.jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
+  const doc=new window.jspdf.jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true});
   const M=12,PH=297,CW=210-2*M,ink=[28,33,30],muted=[93,102,96];
   let y;
   const sect=t=>{doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...ink);doc.text(t,M,y+3.5);y+=6};
@@ -593,11 +593,11 @@ async function makePdf(){
   const ta=tvb.height/tvb.width;
   const avail=Math.max(50,footTop-5-y-tableH-(6+bh)-8);
   const th=Math.min(avail,CW*ta),tw=th/ta;
-  const [timg,bimg]=await Promise.all([svgToPng(tsvg,1800),svgToPng(bsvg,2000)]);
+  const [timg,bimg]=await Promise.all([svgToPng(tsvg,1600),svgToPng(bsvg,1800)]);
 
-  doc.addImage(timg,'PNG',M+(CW-tw)/2,y,tw,th);y+=th+4;
+  doc.addImage(timg,'PNG',M+(CW-tw)/2,y,tw,th,'tyre','FAST');   // compressed: raw pixels made the PDF ~14 MBy+=th+4;
   sect('Marking out the board');
-  doc.addImage(bimg,'PNG',M,y,CW,bh);y+=bh+4;
+  doc.addImage(bimg,'PNG',M,y,CW,bh,'board','FAST');y+=bh+4;
   sect('Cut list');
   doc.setFillColor(236,238,232);doc.rect(M,y,CW,headH,'F');
   doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...muted);
