@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Tyre Shelf Planner</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: workbench — settings panel on the left, cutting-mat drawing + cut list on the right; stacks on phones */
+:root{
+  --bg:#ECEEE8; --surface:#F8F9F5; --ink:#1C211E; --muted:#5D6660; --line:#CED4CC;
+  --accent:#C9541F; --accent-ink:#FFFFFF;
+  --mat:#2E6A54; --mat-grid:#3F7D66; --mat-grid-major:#5A9580; --mat-ink:#F1F4EE; --mat-dim:#BFD6CB;
+  --rubber:#232627; --rubber-hi:#3B3F41; --wood:#DDBB80; --wood-edge:#A47C43; --wood-ink:#3A2A12;
+  --good:#2F7D4F; --good-bg:#DCEFE2; --bad:#B23A26; --bad-bg:#F6DDD7; --warn:#8A5A00; --warn-bg:#F5E8C8;
+  --f-display:'Barlow Condensed','Arial Narrow',system-ui,sans-serif;
+  --f-body:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#141715; --surface:#1C211E; --ink:#E5E9E3; --muted:#98A29B; --line:#303833;
+  --accent:#EE7A42; --accent-ink:#1A0F08;
+  --mat:#1E4839; --mat-grid:#295746; --mat-grid-major:#3A6B58; --mat-ink:#EEF3EC; --mat-dim:#A9C6B9;
+  --rubber:#0B0C0D; --rubber-hi:#2A2E30; --wood:#CFAE76; --wood-edge:#8F6A36; --wood-ink:#2E210D;
+  --good:#7CC796; --good-bg:#1D3326; --bad:#F08A76; --bad-bg:#3A1F1A; --warn:#E6BE62; --warn-bg:#352B14;
+  color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#141715; --surface:#1C211E; --ink:#E5E9E3; --muted:#98A29B; --line:#303833;
+  --accent:#EE7A42; --accent-ink:#1A0F08;
+  --mat:#1E4839; --mat-grid:#295746; --mat-grid-major:#3A6B58; --mat-ink:#EEF3EC; --mat-dim:#A9C6B9;
+  --rubber:#0B0C0D; --rubber-hi:#2A2E30; --wood:#CFAE76; --wood-edge:#8F6A36; --wood-ink:#2E210D;
+  --good:#7CC796; --good-bg:#1D3326; --bad:#F08A76; --bad-bg:#3A1F1A; --warn:#E6BE62; --warn-bg:#352B14;
+  color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:20px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 24px}
+h1{font-family:var(--f-display);font-weight:700;font-size:2.4rem;line-height:1;margin:0;letter-spacing:.01em;text-transform:uppercase;text-wrap:balance}
+h1 span{color:var(--accent)}
+header p{margin:0;color:var(--muted);max-width:52ch}
+.grid{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+
+/* settings panel */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px;display:grid;gap:18px}
+fieldset{border:0;margin:0;padding:0;display:grid;gap:10px;min-width:0}
+legend{font-family:var(--f-display);font-weight:600;font-size:.95rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:0;margin-bottom:10px}
+.field{display:grid;grid-template-columns:1fr 7.5rem;align-items:center;gap:10px}
+.field label{font-size:.9rem}
+.field small{display:block;color:var(--muted);font-size:.78rem;line-height:1.3}
+.inp{position:relative}
+.inp input{width:100%;font:500 .95rem var(--f-mono);font-variant-numeric:tabular-nums;color:var(--ink);background:var(--bg);
+  border:1px solid var(--line);border-radius:4px;padding:7px 34px 7px 9px}
+.inp .u{position:absolute;right:9px;top:50%;transform:translateY(-50%);font:.78rem var(--f-mono);color:var(--muted);pointer-events:none}
+.inp input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+.inp.wide{grid-column:1/-1}
+.seg.seg2{grid-template-columns:repeat(2,1fr)}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{text-align:center;padding:7px 4px;font-size:.84rem;font-weight:500;cursor:pointer;color:var(--muted);border-left:1px solid var(--line)}
+.seg label:first-of-type{border-left:0}
+.seg input:checked+label{background:var(--ink);color:var(--bg)}
+.seg input:focus-visible+label{outline:2px solid var(--accent);outline-offset:-3px}
+.modehelp{font-size:.82rem;color:var(--muted);margin:0}
+.hint{font-size:.84rem;margin:0;padding:8px 10px;border-radius:4px;background:var(--bg);color:var(--muted)}
+.hint b{color:var(--ink);font-weight:600}
+
+/* results */
+.results{display:grid;gap:20px;min-width:0}
+.summary{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:.9rem;padding:5px 11px;border-radius:999px}
+.chip.ok{background:var(--good-bg);color:var(--good)}
+.chip.bad{background:var(--bad-bg);color:var(--bad)}
+.stat{display:grid;line-height:1.15}
+.stat span{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.stat b{font:600 1.05rem var(--f-mono);font-variant-numeric:tabular-nums}
+.mat{background:var(--mat);border-radius:6px;overflow:hidden}
+.mat svg{display:block;width:100%;height:auto;max-height:78vh}
+.svg-lab{font-family:var(--f-mono);font-weight:500}
+.svg-disp{font-family:var(--f-display);font-weight:600;letter-spacing:.04em}
+.warns{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.warns li{font-size:.88rem;padding:7px 11px;border-radius:4px}
+.warns .w{background:var(--warn-bg);color:var(--warn)}
+.warns .e{background:var(--bad-bg);color:var(--bad)}
+
+h2{font-family:var(--f-display);font-weight:700;font-size:1.35rem;text-transform:uppercase;letter-spacing:.04em;margin:0}
+.sec{display:grid;gap:10px;min-width:0}
+.sechead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.btn{font:600 .85rem var(--f-body);background:var(--accent);color:var(--accent-ink);border:0;border-radius:4px;padding:7px 14px;cursor:pointer}
+.btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn:disabled{opacity:.6;cursor:default}
+.tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;min-width:960px}
+th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+tbody tr:last-child td{border-bottom:0}
+td.n{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right}
+th.n{text-align:right}
+td .sub{color:var(--muted);font-size:.8rem;margin-left:6px}
+.tag{display:inline-grid;place-items:center;width:1.7rem;height:1.7rem;border-radius:3px;background:var(--wood);color:var(--wood-ink);font:700 .9rem var(--f-display)}
+.boardwrap{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px;overflow-x:auto}
+.boardwrap svg{display:block;width:100%;min-width:520px;height:auto}
+.copied{font-size:.82rem;color:var(--good)}
+@media (prefers-reduced-motion:no-preference){ .shelf{transition:none} }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Tyre <span>Shelf</span> Planner</h1>
+    <p>Shelves for toy cars inside a tyre. Set your measurements and it draws the layout and works out the cuts.</p>
+  </header>
+
+  <div class="grid">
+    <form class="panel" id="form" autocomplete="off">
+      <fieldset>
+        <legend>Tyre</legend>
+        <div class="field"><label for="dia">Internal diameter<small>to the inside wall, at the widest point</small></label>
+          <div class="inp"><input id="dia" type="number" inputmode="decimal" min="50" step="1"><span class="u">mm</span></div></div>
+        <div class="field"><label for="side">Sidewall<small>how far the lip reaches in from the inside wall to the opening edge</small></label>
+          <div class="inp"><input id="side" type="number" inputmode="decimal" min="0" step="1"><span class="u">mm</span></div></div>
+        <div class="field"><label for="clear">End clearance<small>taken off each end of every shelf</small></label>
+          <div class="inp"><input id="clear" type="number" inputmode="decimal" min="0" step="0.5"><span class="u">mm</span></div></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Shelves</legend>
+        <div class="field"><label for="count">Number of shelves</label>
+          <div class="inp"><input id="count" type="number" inputmode="numeric" min="1" max="20" step="1"></div></div>
+        <div class="field"><label for="thick">Board thickness</label>
+          <div class="inp"><input id="thick" type="number" inputmode="decimal" min="1" step="0.5"><span class="u">mm</span></div></div>
+        <div class="seg seg2" role="radiogroup" aria-label="Shelf ends">
+          <input type="radio" name="ends" id="ends-square" value="square"><label for="ends-square">Square ends</label>
+          <input type="radio" name="ends" id="ends-angle" value="angle"><label for="ends-angle">Angled to tyre wall</label>
+        </div>
+        <p class="modehelp">Angled ends are bevelled across the board’s thickness so they sit flush on the curved wall. The cut length is then the long point.</p>
+        <div class="field"><label for="gap" id="gaplabel">Minimum gap<small>clear space between shelves (25.4 mm = 1 in)</small></label>
+          <div class="inp"><input id="gap" type="number" inputmode="decimal" min="0" step="0.5"><span class="u">mm</span></div></div>
+        <div class="seg" role="radiogroup" aria-label="Spacing mode">
+          <input type="radio" name="mode" id="mode-best" value="best"><label for="mode-best">Use my wood</label>
+          <input type="radio" name="mode" id="mode-even" value="even"><label for="mode-even">Even</label>
+          <input type="radio" name="mode" id="mode-fixed" value="fixed"><label for="mode-fixed">Fixed gap</label>
+        </div>
+        <p class="modehelp" id="modehelp"></p>
+        <div class="field"><label for="spaceBot">Bottom space<small>inside wall to the underside of the bottom shelf. Leave blank for auto</small></label>
+          <div class="inp"><input id="spaceBot" type="number" inputmode="decimal" min="0" step="1" placeholder="auto"><span class="u">mm</span></div></div>
+        <div class="field"><label for="spaceTop">Top space<small>top of the top shelf to the inside wall. Leave blank for auto</small></label>
+          <div class="inp"><input id="spaceTop" type="number" inputmode="decimal" min="0" step="1" placeholder="auto"><span class="u">mm</span></div></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Wood</legend>
+        <div class="field"><label for="boards">Board lengths<small>separate several boards with commas</small></label>
+          <div class="inp"><input id="boards" type="text" inputmode="decimal"><span class="u">mm</span></div></div>
+        <div class="field"><label for="kerf">Saw kerf<small>wood lost per cut</small></label>
+          <div class="inp"><input id="kerf" type="number" inputmode="decimal" min="0" step="0.5"><span class="u">mm</span></div></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Cars</legend>
+        <div class="field"><label for="car">Space per car<small>Matchbox cars are about 75 mm long</small></label>
+          <div class="inp"><input id="car" type="number" inputmode="decimal" min="10" step="1"><span class="u">mm</span></div></div>
+      </fieldset>
+
+      <p class="hint" id="hint"></p>
+    </form>
+
+    <div class="results">
+      <div class="summary" id="summary"></div>
+      <ul class="warns" id="warns"></ul>
+      <div class="mat" id="drawing" role="img" aria-label="Shelf layout inside the tyre"></div>
+
+      <section class="sec">
+        <div class="sechead"><h2>Cut list</h2>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="copied" id="copied" hidden>Copied</span><button class="btn ghost" type="button" id="copy">Copy cut list</button><button class="btn" type="button" id="pdf" hidden>Save A4 PDF</button></div></div>
+        <div class="tablewrap"><table>
+          <thead><tr><th>Shelf</th><th class="n">Cut length (longest)</th><th>Ends</th><th class="n">Visible</th><th class="n">Underside from inside wall</th><th class="n">From opening edge</th><th class="n">Gap above</th><th class="n">Cars</th><th>Cut from</th></tr></thead>
+          <tbody id="cuts"></tbody>
+        </table></div>
+        <textarea id="copybuf" hidden></textarea>
+      </section>
+
+      <section class="sec">
+        <h2>Marking out the board</h2>
+        <div class="boardwrap" id="boardsvg"></div>
+        <p class="modehelp">Longest pieces first. Square one end of the board before your first cut, and dry-fit the middle shelf before cutting the rest.</p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const DEF={dia:590,thick:10,count:5,gap:25.4,boards:'2400',kerf:3,clear:0,car:75,spaceBot:'',spaceTop:'',side:0,ends:'square',mode:'best'};
+const KEY='tyreShelfPlanner';
+const NUMS=['dia','thick','count','gap','kerf','clear','car','spaceBot','spaceTop','side'];
+const MODEHELP={
+  best:'Spreads the shelves as evenly as the wood allows, using as much of it as possible.',
+  even:'Divides the inside of the tyre into equal bands, whatever the wood. Check the board diagram.',
+  fixed:'Every gap is exactly the value above, with the stack centred in the tyre.'
+};
+
+function loadState(){try{const s=JSON.parse(localStorage.getItem(KEY)||'null');return s?{...DEF,...s}:{...DEF}}catch(e){return{...DEF}}}
+function saveState(p){try{localStorage.setItem(KEY,JSON.stringify(p))}catch(e){}}
+
+function init(){
+  const s=loadState();
+  NUMS.forEach(k=>$(k).value=s[k]);
+  $('boards').value=s.boards;
+  ($('mode-'+s.mode)||$('mode-best')).checked=true;
+  ($('ends-'+s.ends)||$('ends-square')).checked=true;
+  $('form').addEventListener('input',update);
+  $('form').addEventListener('submit',e=>e.preventDefault());
+  $('copy').addEventListener('click',copyList);
+  update();
+}
+
+function readForm(){
+  const p={};
+  NUMS.forEach(k=>p[k]=parseFloat($(k).value));
+  p.boardsRaw=$('boards').value;
+  p.boards=p.boardsRaw.split(/[,;\s]+/).map(parseFloat).filter(v=>isFinite(v)&&v>0);
+  p.mode=(document.querySelector('input[name=mode]:checked')||{}).value||'best';
+  p.ends=(document.querySelector('input[name=ends]:checked')||{}).value||'square';
+  p.count=Math.round(p.count);
+  return p;
+}
+
+function validate(p){
+  const e=[];
+  if(!(p.dia>0))e.push('Enter the tyre’s internal diameter.');
+  if(!(p.thick>0))e.push('Enter the board thickness.');
+  if(!(p.count>=1&&p.count<=20))e.push('Number of shelves must be between 1 and 20.');
+  if(!(p.gap>=0))e.push('Enter the gap between shelves (0 or more).');
+  if(!p.boards.length)e.push('Enter at least one board length.');
+  if(!(p.kerf>=0))e.push('Enter the saw kerf (0 if you’re not sure).');
+  if(!(p.clear>=0))e.push('End clearance must be 0 or more.');
+  if(isFinite(p.spaceBot)&&!(p.spaceBot>=0&&p.spaceBot<p.dia-p.thick))e.push('Bottom space must be 0 or more and smaller than the tyre diameter.');
+  if(isFinite(p.spaceTop)&&!(p.spaceTop>=0&&p.spaceTop<p.dia-p.thick))e.push('Top space must be 0 or more and smaller than the tyre diameter.');
+  if(!(p.side>=0&&p.side<p.dia/2-p.thick))e.push('Sidewall must be 0 or more and less than the tyre radius.');
+  if(!(p.car>0))e.push('Enter the space each car needs.');
+  return e;
+}
+
+/* geometry: shelf i=0 is the top one; yc = centre height above tyre centre */
+function shelves(p,s,n){
+  n=n||p.count;
+  const R=p.dia/2,Rv=R-(p.side||0),out=[],top=topCentre(p,n,s);
+  for(let i=0;i<n;i++){
+    const yc=top-i*s;
+    const far=Math.abs(yc)+p.thick/2;           // face farthest from the centre limits the length
+    const half=y=>Math.abs(y)<R?Math.sqrt(R*R-y*y)-p.clear:0;
+    const yt=yc+p.thick/2, yb=yc-p.thick/2, xt=half(yt), xb=half(yb);
+    const angled=p.ends==='angle'&&far<R;
+    const sq=far<R?Math.max(0,Math.floor(2*Math.min(xt,xb))):0;   // square end: the shorter face limits it
+    let L=angled?Math.max(0,Math.floor(2*Math.max(xt,xb))):sq;
+    const topLen=angled?Math.max(0,Math.floor(2*xt)):L, botLen=angled?Math.max(0,Math.floor(2*xb)):L;
+    const ang=angled?Math.atan(Math.abs(xt-xb)/p.thick)*180/Math.PI:0;   // bevel from square, across the thickness
+    const topY=yc+p.thick/2;   // cars sit on the top face; the part behind the sidewall is hidden
+    const vis=Math.abs(topY)<Rv?Math.min(L,Math.floor(2*Math.sqrt(Rv*Rv-topY*topY))):0;
+    out.push({id:String.fromCharCode(65+i),i,yc,len:L,vis,short:sq,ang,topLen,botLen,longUp:xt>xb,under:R+yc-p.thick/2});
+  }
+  return out;
+}
+
+/* first-fit decreasing onto the boards, longest pieces first */
+function pack(list,boards,kerf){
+  const bs=boards.map((len,bi)=>({bi,len,cur:0,pieces:[]}));
+  const order=[...list].filter(x=>x.len>0).sort((a,b)=>b.len-a.len||a.i-b.i);
+  const unplaced=[];
+  order.forEach((sh,k)=>{
+    const b=bs.find(b=>b.len-b.cur>=sh.len);
+    if(!b){unplaced.push(sh);return}
+    b.pieces.push({sh,start:b.cur,order:k+1});
+    b.cur+=sh.len+kerf;
+  });
+  bs.forEach(b=>b.spare=Math.max(0,b.len-b.cur));
+  return {boards:bs,unplaced,ok:unplaced.length===0};
+}
+
+/* where the stack sits: anchored to the top space, the bottom space, or centred */
+const hasTop=p=>isFinite(p.spaceTop), hasBot=p=>isFinite(p.spaceBot);
+function topCentre(p,n,s){
+  const R=p.dia/2,t=p.thick;
+  if(hasTop(p))return R-p.spaceTop-t/2;
+  if(hasBot(p))return -R+p.spaceBot+t/2+(n-1)*s;
+  return (n-1)*s/2;
+}
+function maxSpacing(p,n){
+  if(n<2)return Infinity;
+  const D=p.dia,t=p.thick;
+  if(hasTop(p)&&hasBot(p))return (D-p.spaceTop-p.spaceBot-t)/(n-1);
+  if(hasTop(p))return (D-p.spaceTop-t)/(n-1);
+  if(hasBot(p))return (D-p.spaceBot-t)/(n-1);
+  return (D/2-t/2)/((n-1)/2);
+}
+function evenSpacing(p,n){
+  if(hasTop(p))return (p.dia-p.spaceTop)/n;
+  if(hasBot(p))return (p.dia-p.spaceBot)/n;
+  return p.dia/(n+1);
+}
+
+function chooseSpacing(p,n,mode){
+  const minS=p.thick+p.gap, maxS=maxSpacing(p,n);
+  if(n===1)return {s:0,feasible:pack(shelves(p,0,1),p.boards,p.kerf).ok};
+  if(hasTop(p)&&hasBot(p)){   // both ends fixed: the spacing follows from them
+    const s=maxS;
+    if(s<minS)return {error:`With ${mm(p.spaceBot)} mm at the bottom and ${mm(p.spaceTop)} mm at the top, ${n} shelves would only have ${mm(Math.max(0,s-p.thick))} mm gaps, less than your ${mm(p.gap)} mm minimum. Reduce the spaces, the shelf count or the gap.`};
+    return {s,feasible:pack(shelves(p,s,n),p.boards,p.kerf).ok,locked:true};
+  }
+  if(minS>=maxS)return null;
+  const evenS=evenSpacing(p,n);
+  if(mode==='fixed'){const s=minS;return {s,feasible:pack(shelves(p,s,n),p.boards,p.kerf).ok}}
+  const s0=Math.max(minS,evenS);
+  if(mode==='even')return {s:s0,feasible:pack(shelves(p,s0,n),p.boards,p.kerf).ok};
+  for(let x=s0;x<maxS;x+=0.1){
+    const sh=shelves(p,x,n);
+    if(sh.some(q=>q.len<=0))break;
+    if(pack(sh,p.boards,p.kerf).ok)return {s:Math.round(x*10)/10,feasible:true};
+  }
+  return {s:s0,feasible:false};
+}
+
+function maxCountAtGap(p){
+  const minS=p.thick+p.gap;let n=1;
+  while(n<20&&minS<maxSpacing(p,n+1))n++;
+  return n;
+}
+function maxCountForWood(p,limit){
+  let best=0;
+  for(let n=1;n<=limit;n++){const r=chooseSpacing(p,n,'best');if(r&&r.feasible&&shelves(p,r.s,n).every(q=>q.topLen>=p.car))best=n}
+  return best;
+}
+
+const mm=v=>Math.round(v).toLocaleString('en-GB');
+const cm=v=>(v/10).toFixed(1);
+let lastText='', last=null, downloads=null;
+
+function update(){
+  const p=readForm();
+  $('modehelp').textContent=hasTop(p)&&hasBot(p)?'Top and bottom spaces are both set, so they decide the spacing and these buttons have no effect.':MODEHELP[p.mode];
+  $('gaplabel').firstChild.textContent=p.mode==='fixed'?'Gap between shelves':'Minimum gap';
+  const errs=validate(p);
+  const warns=$('warns');
+  if(errs.length){last=null;warns.innerHTML=errs.map(t=>`<li class="e">${t}</li>`).join('');return}
+  saveState({dia:p.dia,thick:p.thick,count:p.count,gap:p.gap,boards:p.boardsRaw,kerf:p.kerf,clear:p.clear,car:p.car,spaceBot:$('spaceBot').value,spaceTop:$('spaceTop').value,side:p.side,ends:p.ends,mode:p.mode});
+
+  const nMax=maxCountAtGap(p);
+  const nWood=maxCountForWood(p,nMax);
+  $('hint').innerHTML=`With a ${mm(p.gap)} mm gap, up to <b>${nMax}</b> shelves fit in the tyre. Your wood is enough for <b>${nWood}</b> shelves that each hold at least one car.`;
+
+  const r=chooseSpacing(p,p.count,p.mode);
+  if(!r||r.error){
+    warns.innerHTML=`<li class="e">${r?r.error:`${p.count} shelves with a ${mm(p.gap)} mm gap won’t fit inside a ${mm(p.dia)} mm tyre${hasTop(p)||hasBot(p)?' with that top or bottom space':''}. The most that fit is ${nMax}. Reduce the shelf count, the gap or the spaces.`}</li>`;
+    last=null;$('summary').innerHTML='';$('drawing').innerHTML='';$('cuts').innerHTML='';$('boardsvg').innerHTML='';
+    return;
+  }
+  const sh=shelves(p,r.s);
+  const pk=pack(sh,p.boards,p.kerf);
+  const W=[];
+  const totalLen=sh.reduce((a,q)=>a+q.len,0);
+  const woodTotal=p.boards.reduce((a,b)=>a+b,0);
+  const needed=totalLen+p.kerf*Math.max(0,sh.length-1);
+  const spare=pk.boards.reduce((a,b)=>a+b.spare,0);
+  const shortBy=pk.unplaced.reduce((a,q)=>a+q.len+p.kerf,0);
+
+  if(sh.some(q=>q.len<=0))W.push(['e','One or more shelves sit at the very edge of the tyre and have no length. Reduce the shelf count or gap.']);
+  sh.filter(q=>q.len>0&&q.topLen<p.car).forEach(q=>W.push(['w',`Shelf ${q.id} is only ${mm(q.topLen)} mm long on top, less than one car.`]));
+  if(p.ends==='angle')sh.filter(q=>q.ang>45).forEach(q=>W.push(['w',`Shelf ${q.id} needs a ${q.ang.toFixed(0)}° end, steeper than most saws can bevel. Cut it at 45° and sand or plane the rest.`]));
+  if(!pk.ok)W.push(['e',`Not enough wood: shelf ${pk.unplaced.map(q=>q.id).join(', ')} won’t come out of your board${p.boards.length>1?'s':''}. You need about ${mm(shortBy)} mm more.`]);
+  if(p.mode==='best'&&!r.feasible&&pk.ok===false)W.push(['w','No spacing makes these shelves fit your wood. Try fewer shelves.']);
+  warns.innerHTML=W.map(([c,t])=>`<li class="${c}">${t}</li>`).join('');
+
+  const cars=sh.reduce((a,q)=>a+Math.floor(q.topLen/p.car),0);
+  const gapClear=p.count>1?r.s-p.thick:null;
+  $('summary').innerHTML=
+    (pk.ok?`<span class="chip ok">✓ Fits your wood · ${mm(spare)} mm spare</span>`:`<span class="chip bad">Short by ~${mm(shortBy)} mm</span>`)+
+    stat('Spacing',p.count>1?`${r.s.toFixed(1)} mm`:'—')+
+    stat('Clear gap',gapClear!=null?`${gapClear.toFixed(1)} mm`:'—')+
+    stat('Bottom space',`${mm(sh[sh.length-1].under)} mm`)+
+    stat('Top space',`${mm(p.dia-sh[0].under-p.thick)} mm`)+
+    stat('Shelf total',`${mm(totalLen)} mm`)+
+    stat('Wood',`${mm(woodTotal)} mm`)+
+    stat('Cars',`~${cars}`);
+
+  drawTyre(p,sh,r.s);
+  table(p,sh,pk,r.s);
+  drawBoards(p,pk);
+  lastText=copyText(p,sh,pk,r.s,totalLen,woodTotal,cars);
+  last={p,sh,pk,s:r.s,totalLen,cars,spare,shortBy,W};
+}
+function stat(k,v){return `<div class="stat"><span>${k}</span><b>${v}</b></div>`}
+
+function pts(q,p){const yt=-(q.yc+p.thick/2),yb=-(q.yc-p.thick/2);return `${-q.topLen/2},${yt} ${q.topLen/2},${yt} ${q.botLen/2},${yb} ${-q.botLen/2},${yb}`}
+function endsText(q,p){
+  if(p.ends!=='angle'||q.len<=0)return 'Square';
+  if(q.ang<0.05)return 'Square<span class="sub">across the middle</span>';
+  return `<b>${q.ang.toFixed(1)}°</b>${q.ang>45?' ⚠':''}<span class="sub">short face ${mm(q.short)} mm · long face ${q.longUp?'up':'down'}</span>`;
+}
+function drawTyre(p,sh,s){
+  const R=p.dia/2, rub=Math.max(12,p.dia*0.035), Ro=R+rub;
+  const fs=Math.max(10,p.dia*0.028);
+  const x0=-(Ro+fs*5.2), x1=Ro+fs*1.2, y0=-(Ro+fs*1.2), y1=Ro+fs*3.4;
+  const w=x1-x0,h=y1-y0;
+  let g='';
+  g+=`<defs>
+    <pattern id="minor" width="10" height="10" patternUnits="userSpaceOnUse" x="0" y="0"><path d="M10 0H0V10" fill="none" stroke="var(--mat-grid)" stroke-width="0.6"/></pattern>
+    <pattern id="major" width="50" height="50" patternUnits="userSpaceOnUse" x="0" y="0"><rect width="50" height="50" fill="url(#minor)"/><path d="M50 0H0V50" fill="none" stroke="var(--mat-grid-major)" stroke-width="1"/></pattern>
+  </defs>`;
+  g+=`<rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="var(--mat)"/>`;
+  g+=`<rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="url(#major)"/>`;
+  // tyre
+  g+=`<circle cx="0" cy="0" r="${R+rub/2}" fill="none" stroke="var(--rubber)" stroke-width="${rub}"/>`;
+  const tr=Ro-rub*0.12, circ=2*Math.PI*tr;
+  g+=`<circle cx="0" cy="0" r="${tr}" fill="none" stroke="var(--rubber-hi)" stroke-width="${rub*0.24}" stroke-dasharray="${circ/72*0.45} ${circ/72*0.55}"/>`;
+  g+=`<circle cx="0" cy="0" r="${R+rub*0.5}" fill="none" stroke="var(--rubber-hi)" stroke-width="1.2" opacity=".7"/>`;
+  g+=`<circle cx="0" cy="0" r="${R}" fill="none" stroke="var(--rubber-hi)" stroke-width="2"/>`;
+  g+=`<line x1="${-R}" y1="0" x2="${R}" y2="0" stroke="var(--mat-dim)" stroke-width="0.8" stroke-dasharray="6 6" opacity=".55"/>`;
+  // shelves
+  sh.forEach(q=>{
+    if(q.len<=0)return;
+    const y=-(q.yc+p.thick/2);
+    g+=`<polygon class="shelf" points="${pts(q,p)}" fill="var(--wood)" stroke="var(--wood-edge)" stroke-width="1"/>`;
+    const lfs=Math.min(fs,Math.max(7,(s-p.thick)*0.62)||fs);
+    g+=`<text class="svg-lab" x="0" y="${y-lfs*0.35}" font-size="${lfs}" fill="var(--mat-ink)" text-anchor="middle">${q.id} · ${mm(q.len)}</text>`;
+  });
+  // sidewall lip overlapping the shelf ends
+  const S=p.side||0;
+  if(S>0){const Rv=R-S;
+    g+=`<path d="M${-R} 0a${R} ${R} 0 1 0 ${2*R} 0a${R} ${R} 0 1 0 ${-2*R} 0ZM${-Rv} 0a${Rv} ${Rv} 0 1 0 ${2*Rv} 0a${Rv} ${Rv} 0 1 0 ${-2*Rv} 0Z" fill="var(--rubber)" fill-rule="evenodd" opacity=".86"/>`;
+    sh.forEach(q=>{if(q.len<=0)return;const y=-(q.yc+p.thick/2);
+      g+=`<polygon points="${pts(q,p)}" fill="none" stroke="var(--wood)" stroke-width="1" stroke-dasharray="4 3" opacity=".8"/>`});
+    g+=`<circle cx="0" cy="0" r="${Rv}" fill="none" stroke="var(--rubber-hi)" stroke-width="2.5"/>`;
+  }
+  // height scale (from the inside bottom of the tyre)
+  const sx=-(Ro+fs*1.2);
+  g+=`<line x1="${sx}" y1="${R}" x2="${sx}" y2="${-R}" stroke="var(--mat-dim)" stroke-width="1.2"/>`;
+  g+=`<line x1="${sx-fs*0.4}" y1="${R}" x2="${sx+fs*0.4}" y2="${R}" stroke="var(--mat-dim)" stroke-width="1.2"/>`;
+  g+=`<line x1="${sx-fs*0.4}" y1="${-R}" x2="${sx+fs*0.4}" y2="${-R}" stroke="var(--mat-dim)" stroke-width="1.2"/>`;
+  g+=`<text class="svg-lab" x="${sx-fs*0.6}" y="${R+fs*0.35}" font-size="${fs*0.8}" fill="var(--mat-dim)" text-anchor="end">0</text>`;
+  g+=`<text class="svg-lab" x="${sx-fs*0.6}" y="${-R+fs*0.35}" font-size="${fs*0.8}" fill="var(--mat-dim)" text-anchor="end">${mm(p.dia)}</text>`;
+  sh.forEach(q=>{
+    if(q.len<=0)return;
+    const y=-(q.yc-p.thick/2);
+    g+=`<line x1="${sx}" y1="${y}" x2="${-q.len/2}" y2="${y}" stroke="var(--mat-dim)" stroke-width="0.7" stroke-dasharray="3 4" opacity=".7"/>`;
+    g+=`<line x1="${sx-fs*0.4}" y1="${y}" x2="${sx+fs*0.4}" y2="${y}" stroke="var(--mat-ink)" stroke-width="1.4"/>`;
+    g+=`<text class="svg-lab" x="${sx-fs*0.6}" y="${y+fs*0.35}" font-size="${fs*0.8}" fill="var(--mat-ink)" text-anchor="end">${mm(q.under)}</text>`;
+  });
+  if(S>0){[R-S,-(R-S)].forEach(y=>{g+=`<line x1="${sx-fs*0.5}" y1="${y}" x2="${sx+fs*0.5}" y2="${y}" stroke="var(--accent)" stroke-width="1.6"/>`});
+    g+=`<text class="svg-lab" x="${sx-fs*0.6}" y="${R-S+fs*1.15}" font-size="${fs*0.62}" fill="var(--accent)" text-anchor="end">opening ${mm(S)}</text>`;}
+  g+=`<text class="svg-disp" x="${sx}" y="${-R-fs*0.9}" font-size="${fs*0.75}" fill="var(--mat-dim)" text-anchor="middle">HEIGHT</text>`;
+  // diameter dimension
+  const dy=Ro+fs*1.6;
+  g+=`<line x1="${-R}" y1="${dy}" x2="${R}" y2="${dy}" stroke="var(--mat-dim)" stroke-width="1.2"/>`;
+  g+=`<line x1="${-R}" y1="${dy-fs*0.4}" x2="${-R}" y2="${dy+fs*0.4}" stroke="var(--mat-dim)" stroke-width="1.2"/>`;
+  g+=`<line x1="${R}" y1="${dy-fs*0.4}" x2="${R}" y2="${dy+fs*0.4}" stroke="var(--mat-dim)" stroke-width="1.2"/>`;
+  g+=`<text class="svg-lab" x="0" y="${dy+fs*1.25}" font-size="${fs*0.85}" fill="var(--mat-ink)" text-anchor="middle">Ø ${mm(p.dia)} mm inside wall${S>0?' · Ø '+mm(p.dia-2*S)+' mm opening':''} · sizes in mm</text>`;
+  $('drawing').innerHTML=`<svg viewBox="${x0} ${y0} ${w} ${h}" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
+}
+
+function table(p,sh,pk,s){
+  const where={};
+  pk.boards.forEach(b=>b.pieces.forEach(pc=>where[pc.sh.id]={b:b.bi+1,order:pc.order}));
+  const multi=p.boards.length>1;
+  $('cuts').innerHTML=sh.map((q,i)=>{
+    const above=i===0?(p.dia-(q.under+p.thick)):(sh[i-1].under-(q.under+p.thick));
+    const w=where[q.id];
+    const from=q.len<=0?'<span style="color:var(--bad)">No room</span>':w?`${multi?'Board '+w.b+', ':''}cut #${w.order}`:'<span style="color:var(--bad)">Not enough wood</span>';
+    return `<tr><td><span class="tag">${q.id}</span></td>
+      <td class="n">${mm(q.len)} mm<span class="sub">${cm(q.len)} cm</span></td>
+      <td>${endsText(q,p)}</td>
+      <td class="n">${q.vis>0?mm(q.vis)+' mm':'behind lip'}</td>
+      <td class="n">${mm(q.under)} mm</td>
+      <td class="n">${mm(q.under-(p.side||0))} mm</td>
+      <td class="n">${above.toFixed(1)} mm</td>
+      <td class="n">${Math.floor(q.topLen/p.car)}</td>
+      <td>${from}</td></tr>`;
+  }).join('');
+}
+
+function drawBoards(p,pk){
+  const rows=[...pk.boards];
+  const maxLen=Math.max(...p.boards,pk.unplaced.reduce((a,q)=>a+q.len+p.kerf,0));
+  const W=1000,pad=8,sc=(W-pad*2)/maxLen,rowH=74,barH=34;
+  const total=rows.length+(pk.unplaced.length?1:0);
+  let g=`<defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="var(--bg)"/><line x1="0" y1="0" x2="0" y2="8" stroke="var(--line)" stroke-width="3"/></pattern></defs>`;
+  rows.forEach((b,ri)=>{
+    const y=ri*rowH+24;
+    g+=`<text class="svg-lab" x="${pad}" y="${y-8}" font-size="13" fill="var(--muted)">${p.boards.length>1?'Board '+(b.bi+1)+' · ':''}${mm(b.len)} mm</text>`;
+    g+=`<rect x="${pad}" y="${y}" width="${b.len*sc}" height="${barH}" fill="url(#hatch)" stroke="var(--line)"/>`;
+    b.pieces.forEach(pc=>{
+      const x=pad+pc.start*sc,w=pc.sh.len*sc;
+      g+=`<rect x="${x}" y="${y}" width="${w}" height="${barH}" fill="var(--wood)" stroke="var(--wood-edge)"/>`;
+      if(w>78)g+=`<text class="svg-lab" x="${x+w/2}" y="${y+barH/2+5}" font-size="14" fill="var(--wood-ink)" text-anchor="middle">${pc.sh.id} · ${mm(pc.sh.len)}</text>`;
+      else if(w>14)g+=`<text class="svg-lab" x="${x+w/2}" y="${y+barH/2+5}" font-size="13" fill="var(--wood-ink)" text-anchor="middle">${pc.sh.id}</text>`;
+      g+=`<text class="svg-lab" x="${x+3}" y="${y+barH+15}" font-size="11" fill="var(--muted)">${mm(pc.start)}</text>`;
+    });
+    if(b.spare>0){const x=pad+(b.len-b.spare)*sc;g+=`<text class="svg-lab" x="${pad+b.len*sc-3}" y="${y+barH+15}" font-size="11" fill="var(--muted)" text-anchor="end">offcut ${mm(b.spare)}</text>`}
+  });
+  if(pk.unplaced.length){
+    const y=rows.length*rowH+24;let cur=0;
+    g+=`<text class="svg-lab" x="${pad}" y="${y-8}" font-size="13" fill="var(--bad)">Won’t fit: needs more wood</text>`;
+    pk.unplaced.forEach(q=>{const x=pad+cur*sc,w=q.len*sc;
+      g+=`<rect x="${x}" y="${y}" width="${w}" height="${barH}" fill="var(--bad-bg)" stroke="var(--bad)" stroke-dasharray="4 3"/>`;
+      if(w>14)g+=`<text class="svg-lab" x="${x+w/2}" y="${y+barH/2+5}" font-size="13" fill="var(--bad)" text-anchor="middle">${w>78?q.id+' · '+mm(q.len):q.id}</text>`;
+      cur+=q.len+p.kerf});
+  }
+  const H=total*rowH+10;
+  $('boardsvg').innerHTML=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
+}
+
+function copyText(p,sh,pk,s,totalLen,woodTotal,cars){
+  const where={};pk.boards.forEach(b=>b.pieces.forEach(pc=>where[pc.sh.id]={b:b.bi+1,order:pc.order}));
+  const lines=[`Tyre shelf cut list — Ø${mm(p.dia)} mm tyre, ${p.thick} mm board, ${p.count} shelves`,
+    p.count>1?`Spacing ${s.toFixed(1)} mm centre to centre (${(s-p.thick).toFixed(1)} mm clear gap)`:'',`Bottom space ${mm(sh[sh.length-1].under)} mm, top space ${mm(p.dia-sh[0].under-p.thick)} mm`,p.side?`Sidewall ${mm(p.side)} mm, opening Ø${mm(p.dia-2*p.side)} mm`:''].filter(Boolean);lines.push('');
+  sh.forEach(q=>{const w=where[q.id];
+    lines.push(`${q.id}  ${String(mm(q.len)).padStart(5)} mm${p.ends==='angle'&&q.ang>=0.05?' long point, ends '+q.ang.toFixed(1)+'° (short face '+mm(q.short)+', long face '+(q.longUp?'up':'down')+')':''}   underside ${String(mm(q.under)).padStart(4)} mm from inside wall${p.side?' / '+mm(q.under-p.side)+' mm from opening edge':''}   ${w?(p.boards.length>1?'board '+w.b+', ':'')+'cut #'+w.order:'NOT ENOUGH WOOD'}`)});
+  lines.push('',`Shelves total ${mm(totalLen)} mm · wood ${mm(woodTotal)} mm · kerf ${p.kerf} mm · ~${cars} cars`);
+  return lines.filter((l,i)=>l!==''||i>0).join('\n');
+}
+
+function copyList(){
+  const done=()=>{$('copied').hidden=false;setTimeout(()=>$('copied').hidden=true,1600)};
+  const fallback=()=>{const t=$('copybuf');t.hidden=false;t.value=lastText;t.select();try{document.execCommand('copy');done()}catch(e){}t.hidden=true};
+  try{navigator.clipboard.writeText(lastText).then(done,fallback)}catch(e){fallback()}
+}
+
+/* ---- A4 PDF: drawings first, then the cut list ---- */
+const PRINT={bg:'#FFFFFF',line:'#C9CFC6',muted:'#5D6660',ink:'#1C211E',mat:'#FFFFFF','mat-grid':'#F0F2EE','mat-grid-major':'#DDE2DB','mat-ink':'#1C211E','mat-dim':'#5D6660',rubber:'#2B2E30','rubber-hi':'#5A5F62',wood:'#E2C48C','wood-edge':'#8E6A35','wood-ink':'#3A2A12',accent:'#C9541F',bad:'#B23A26','bad-bg':'#F6DDD7'};
+
+function svgToPng(svg,pxW){
+  return new Promise((res,rej)=>{
+    const vb=svg.viewBox.baseVal,pxH=Math.round(pxW*vb.height/vb.width);
+    let s=new XMLSerializer().serializeToString(svg);
+    s=s.replace(/var\(--([a-z-]+)\)/g,(m,k)=>PRINT[k]||'#000000')
+       .replace(/class="svg-lab"/g,'font-family="Helvetica, Arial, sans-serif" font-weight="500"')
+       .replace(/class="svg-disp"/g,'font-family="Arial Narrow, Arial, sans-serif" font-weight="700"')
+       .replace('<svg ',`<svg width="${pxW}" height="${pxH}" `);
+    const img=new Image();
+    img.onload=()=>{const c=document.createElement('canvas');c.width=pxW;c.height=pxH;const g=c.getContext('2d');
+      g.fillStyle='#ffffff';g.fillRect(0,0,pxW,pxH);g.drawImage(img,0,0,pxW,pxH);res(c.toDataURL('image/png'))};
+    img.onerror=()=>rej(new Error('render'));
+    img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(s);
+  });
+}
+
+async function makePdf(){
+  const {p,sh,pk,s,totalLen,cars,spare,shortBy,W}=last;
+  const doc=new window.jspdf.jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
+  const M=12,PH=297,CW=210-2*M,ink=[28,33,30],muted=[93,102,96];
+  let y;
+  const sect=t=>{doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...ink);doc.text(t,M,y+3.5);y+=6};
+  doc.setTextColor(...ink);doc.setFont('helvetica','bold');doc.setFontSize(18);
+  doc.text('Tyre Shelf Plan',M,M+6);
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...muted);
+  const angled=p.ends==='angle';
+  const l1=[`Ø${mm(p.dia)} mm tyre (inside wall)`,p.side?`sidewall ${mm(p.side)} mm`:'',`${p.thick} mm board`,`${p.count} shelves`,
+    p.count>1?`${s.toFixed(1)} mm spacing (${(s-p.thick).toFixed(1)} mm gap)`:'',angled?'angled ends':'square ends'].filter(Boolean).join('  ·  ');
+  const l2=[`Wood ${p.boards.map(b=>mm(b)).join(' + ')} mm`,`kerf ${p.kerf} mm`,`shelves total ${mm(totalLen)} mm`,
+    pk.ok?`fits, ${mm(spare)} mm spare`:`short by about ${mm(shortBy)} mm`,`about ${cars} cars`].join('  ·  ');
+  y=M+12;
+  doc.splitTextToSize(l1,CW).concat(doc.splitTextToSize(l2,CW)).forEach(t=>{doc.text(t,M,y);y+=4.3});
+  if(W.length){doc.setTextColor(178,58,38);W.forEach(([,t])=>doc.splitTextToSize(t,CW).forEach(line=>{doc.text(line,M,y);y+=4.3}))}
+  y+=1;
+
+  const where={};pk.boards.forEach(b=>b.pieces.forEach(pc=>where[pc.sh.id]={b:b.bi+1,order:pc.order}));
+  const multi=p.boards.length>1;
+  const above=i=>i===0?p.dia-(sh[0].under+p.thick):sh[i-1].under-(sh[i].under+p.thick);
+  const hasAng=q=>angled&&q.len>0&&q.ang>=0.05;
+  const cols=[['Shelf',12,q=>q.id],['Cut length',24,q=>`${mm(q.len)} mm`]];
+  if(angled)cols.push(['Angle',16,q=>hasAng(q)?`${q.ang.toFixed(1)}°`:'square'],['Short face',20,q=>hasAng(q)?`${mm(q.short)} mm`:'-'],['Long face',17,q=>hasAng(q)?(q.longUp?'up':'down'):'-']);
+  cols.push(['Underside',21,q=>`${mm(q.under)} mm`]);
+  if(p.side)cols.push(['From lip',19,q=>`${mm(q.under-p.side)} mm`]);
+  cols.push(['Gap above',19,(q,i)=>`${mm(above(i))} mm`],['Cars',11,q=>String(Math.floor(q.topLen/p.car))]);
+  const usedW=cols.reduce((a,c)=>a+c[1],0);
+  cols.push(['Cut',Math.max(16,CW-usedW),q=>{const w=where[q.id];return q.len<=0?'no room':w?`${multi?'board '+w.b+', ':''}#${w.order}`:'no wood'}]);
+  const rowH=6.2,headH=6.5,tableH=6+headH+sh.length*rowH;
+
+  const tsvg=$('drawing').querySelector('svg'),bsvg=$('boardsvg').querySelector('svg');
+  const tvb=tsvg.viewBox.baseVal,bvb=bsvg.viewBox.baseVal;
+  const bh=CW*bvb.height/bvb.width;
+  const foot=['Heights are measured from the inside bottom wall of the tyre.','Square one end of the board first, and dry-fit the longest shelf before cutting the rest.'];
+  const footTop=PH-M-(foot.length-1)*3.6;
+  const ta=tvb.height/tvb.width;
+  const avail=Math.max(50,footTop-5-y-tableH-(6+bh)-8);
+  const th=Math.min(avail,CW*ta),tw=th/ta;
+  const [timg,bimg]=await Promise.all([svgToPng(tsvg,1800),svgToPng(bsvg,2000)]);
+
+  doc.addImage(timg,'PNG',M+(CW-tw)/2,y,tw,th);y+=th+4;
+  sect('Marking out the board');
+  doc.addImage(bimg,'PNG',M,y,CW,bh);y+=bh+4;
+  sect('Cut list');
+  doc.setFillColor(236,238,232);doc.rect(M,y,CW,headH,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...muted);
+  let x=M;cols.forEach(c=>{doc.text(c[0].toUpperCase(),x+1.5,y+4.3);x+=c[1]});
+  y+=headH;
+  doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(...ink);doc.setDrawColor(206,212,204);doc.setLineWidth(0.2);
+  sh.forEach((q,i)=>{x=M;cols.forEach(c=>{doc.text(String(c[2](q,i)),x+1.5,y+4.3);x+=c[1]});y+=rowH;doc.line(M,y,M+CW,y)});
+  doc.setFontSize(8);doc.setTextColor(...muted);
+  foot.forEach((t,i)=>doc.text(t,M,footTop+i*3.6));
+  return doc.output('blob');
+}
+
+async function savePdf(){
+  const b=$('pdf'),msg=$('copied');
+  const say=t=>{msg.textContent=t;msg.hidden=false;setTimeout(()=>{msg.hidden=true;msg.textContent='Copied'},2600)};
+  if(!last){say('Fix the settings first');return}
+  if(!window.jspdf){say('PDF maker didn’t load. Reload the page');return}
+  b.disabled=true;b.textContent='Making PDF…';
+  try{
+    const blob=await makePdf();
+    await downloads.save({filename:'tyre-shelf-plan.pdf',data:blob});
+    say('PDF saved');
+  }catch(e){
+    const c=e&&e.code;
+    if(c==='declined')say('Not saved');
+    else if(c==='rate_limited')say('A save is already waiting');
+    else if(c&&c!=='bad_request'&&c!=='too_large'){say('Saving isn’t available here');b.hidden=true}
+    else say('Couldn’t make the PDF');
+  }finally{b.disabled=false;b.textContent='Save A4 PDF'}
+}
+
+async function initDownloads(){
+  let framed=true;try{framed=window.self!==window.top}catch(e){}
+  if(!framed){   // opened as a normal web page (e.g. GitHub Pages): save straight to the browser
+    downloads={save:async({filename,data})=>{const a=document.createElement('a');a.href=URL.createObjectURL(data);a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);return{status:'saved'}}};
+    $('pdf').hidden=false;$('pdf').addEventListener('click',savePdf);return;
+  }
+  for(let i=0;i<40&&!(window.claude&&window.claude.use);i++)await new Promise(r=>setTimeout(r,250));
+  try{downloads=window.claude&&window.claude.use?await window.claude.use('downloads'):null}catch(e){downloads=null}
+  if(downloads){$('pdf').hidden=false;$('pdf').addEventListener('click',savePdf)}
+}
+
+init();
+initDownloads();
+</script>
+
+</body>
+</html>
